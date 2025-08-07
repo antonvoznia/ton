@@ -23,6 +23,7 @@
 
 #include "td/utils/buffer.h"
 #include "td/db/utils/BlobView.h"
+#include "TorrentHeader.hpp"
 
 #include <map>
 #include <set>
