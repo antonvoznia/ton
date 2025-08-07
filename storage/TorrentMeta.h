@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "TorrentHeader.h"
+#include "TorrentHeader.hpp"
 #include "TorrentInfo.h"
 
 #include "td/utils/optional.h"

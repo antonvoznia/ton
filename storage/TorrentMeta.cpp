@@ -17,12 +17,9 @@
     Copyright 2017-2020 Telegram Systems LLP
 */
 
-#include "TorrentMeta.h"
-
-#include "TorrentHeader.hpp"
+#include "TorrentMeta.hpp"
 
 #include "td/utils/crypto.h"
-#include "td/utils/tl_helpers.h"
 #include "td/utils/UInt.h"
 
 #include "vm/boc.h"
@@ -56,85 +53,5 @@ td::Result<TorrentMeta> TorrentMeta::deserialize(td::Slice data) {
 
 std::string TorrentMeta::serialize() const {
   return td::serialize(*this);
-}
-
-template <class StorerT>
-void TorrentMeta::store(StorerT &storer) const {
-  using td::store;
-  td::uint32 flags = 0;
-
-  if (root_proof.not_null()) {
-    flags |= 1;
-  }
-
-  if (header) {
-    flags |= 2;
-  }
-  store(flags, storer);
-
-  const auto info_boc = vm::std_boc_serialize(info.as_cell()).move_as_ok();
-  td::uint32 info_boc_size = td::narrow_cast<td::uint32>(info_boc.size());
-
-  td::BufferSlice root_proof_boc;
-  td::uint32 root_proof_boc_size{0};
-  if ((flags & 1) != 0) {
-    root_proof_boc = vm::std_boc_serialize(root_proof).move_as_ok();
-    root_proof_boc_size = td::narrow_cast<td::uint32>(root_proof_boc.size());
-  }
-
-  store(info_boc_size, storer);
-  if ((flags & 1) != 0) {
-    store(root_proof_boc_size, storer);
-  }
-  storer.store_slice(info_boc.as_slice());
-  if ((flags & 1) != 0) {
-    storer.store_slice(root_proof_boc.as_slice());
-  }
-
-  if ((flags & 2) != 0) {
-    store(header.value(), storer);
-  }
-}
-
-template <class ParserT>
-void TorrentMeta::parse(ParserT &parser) {
-  using td::parse;
-  td::uint32 flags;
-  parse(flags, parser);
-
-  td::uint32 info_boc_size;
-  td::uint32 root_proof_boc_size;
-  parse(info_boc_size, parser);
-  if ((flags & 1) != 0) {
-    parse(root_proof_boc_size, parser);
-  }
-  auto info_boc_str = parser.template fetch_string_raw<std::string>(info_boc_size);
-  auto r_info_cell = vm::std_boc_deserialize(info_boc_str);
-  if (r_info_cell.is_error()) {
-    parser.set_error(r_info_cell.error().to_string());
-    return;
-  }
-
-  if ((flags & 1) != 0) {
-    auto root_proof_str = parser.template fetch_string_raw<std::string>(root_proof_boc_size);
-    auto r_root_proof = vm::std_boc_deserialize(root_proof_str);
-    if (r_root_proof.is_error()) {
-      parser.set_error(r_root_proof.error().to_string());
-      return;
-    }
-    root_proof = r_root_proof.move_as_ok();
-  }
-
-  auto cs = vm::load_cell_slice(r_info_cell.move_as_ok());
-  if (!info.unpack(cs)) {
-    parser.set_error("Failed to parse TorrentInfo");
-    return;
-  }
-
-  if ((flags & 2) != 0) {
-    TorrentHeader new_header;
-    parse(new_header, parser);
-    header = std::move(new_header);
-  }
 }
 }  // namespace ton

@@ -17,6 +17,7 @@
     Copyright 2017-2020 Telegram Systems LLP
 */
 
+#include "TorrentHeader.h"
 #include "TorrentHeader.hpp"
 
 #include "td/utils/tl_helpers.h"
